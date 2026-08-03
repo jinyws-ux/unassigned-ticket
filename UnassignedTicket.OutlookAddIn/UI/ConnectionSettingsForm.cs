@@ -8,7 +8,6 @@ namespace UnassignedTicket.OutlookAddIn.UI
 {
     internal sealed class ConnectionSettingsForm : Form
     {
-        private readonly TextBox _providerTextBox;
         private readonly TextBox _connectionTextBox;
         private readonly NumericUpDown _timeoutInput;
         private readonly Button _testButton;
@@ -23,41 +22,31 @@ namespace UnassignedTicket.OutlookAddIn.UI
             StartPosition = FormStartPosition.CenterParent;
             Font = new Font("Segoe UI", 9F);
 
-            var providerLabel = NewLabel("ADO.NET Provider invariant name", 20, 20, 300);
-            _providerTextBox = new TextBox
-            {
-                Left = 20,
-                Top = 46,
-                Width = 560,
-                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
-                Text = settings?.ProviderInvariantName ?? "System.Data.SqlClient"
-            };
-
-            var connectionLabel = NewLabel("连接字符串（只保存在本机，并使用当前 Windows 用户加密）", 20, 82, 520);
+            var connectionLabel = NewLabel("PostgreSQL 连接字符串（只保存在本机，并使用当前 Windows 用户加密）", 20, 20, 560);
             _connectionTextBox = new TextBox
             {
                 Left = 20,
-                Top = 108,
+                Top = 48,
                 Width = 560,
-                Height = 110,
+                Height = 150,
                 Multiline = true,
                 ScrollBars = ScrollBars.Vertical,
                 Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
                 Text = settings?.ConnectionString ?? string.Empty
             };
 
-            var timeoutLabel = NewLabel("查询超时（秒）", 20, 238, 120);
+            var timeoutLabel = NewLabel("查询超时（秒）", 20, 218, 120);
             _timeoutInput = new NumericUpDown
             {
                 Left = 145,
-                Top = 235,
+                Top = 215,
                 Width = 80,
                 Minimum = 3,
                 Maximum = 120,
                 Value = Math.Max(3, Math.Min(settings?.CommandTimeoutSeconds ?? 15, 120))
             };
 
-            var warning = NewLabel("建议使用只读账号和 Windows 集成认证。不要在连接字符串中授予写权限。", 20, 275, 560);
+            var warning = NewLabel("账号应只授予目标表或视图的 SELECT 权限；如果服务器支持，建议启用 SSL。", 20, 258, 560);
             warning.ForeColor = Color.FromArgb(146, 64, 14);
 
             _testButton = new Button
@@ -84,7 +73,7 @@ namespace UnassignedTicket.OutlookAddIn.UI
 
             Controls.AddRange(new Control[]
             {
-                providerLabel, _providerTextBox, connectionLabel, _connectionTextBox,
+                connectionLabel, _connectionTextBox,
                 timeoutLabel, _timeoutInput, warning, _testButton, _saveButton
             });
             AcceptButton = _saveButton;
@@ -101,7 +90,6 @@ namespace UnassignedTicket.OutlookAddIn.UI
         {
             return new DatabaseSettings
             {
-                ProviderInvariantName = _providerTextBox.Text.Trim(),
                 ConnectionString = _connectionTextBox.Text.Trim(),
                 CommandTimeoutSeconds = (int)_timeoutInput.Value
             };
@@ -112,7 +100,7 @@ namespace UnassignedTicket.OutlookAddIn.UI
             DatabaseSettings settings = ReadSettings();
             if (!settings.IsConfigured)
             {
-                MessageBox.Show("请先填写 Provider 和连接字符串。", Text, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show("请先填写 PostgreSQL 连接字符串。", Text, MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
 
@@ -143,7 +131,7 @@ namespace UnassignedTicket.OutlookAddIn.UI
             DatabaseSettings settings = ReadSettings();
             if (!settings.IsConfigured)
             {
-                MessageBox.Show("Provider 和连接字符串不能为空。", Text, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show("PostgreSQL 连接字符串不能为空。", Text, MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
 

@@ -8,7 +8,7 @@ Windows 经典版 Outlook VSTO 插件。Outlook 启动后自动在每个主窗�
 - 每个 Outlook Explorer 窗口独立创建任务窗格
 - 每 60 秒自动查询，支持手动刷新
 - 全部、INC、WO 筛选
-- 数据库直连采用标准 ADO.NET Provider
+- 使用 Npgsql 8.0.9 直连 PostgreSQL
 - 数据库配置仅保存在当前 Windows 用户目录，并使用 DPAPI 加密
 - 查询语句固定在代码中，插件界面不能提交任意 SQL
 - 未配置数据库时显示设置引导，不会尝试连接
@@ -31,7 +31,13 @@ Windows 经典版 Outlook VSTO 插件。Outlook 启动后自动在每个主窗�
 %LOCALAPPDATA%\ITCC\UnassignedTicket\database.config
 ```
 
-建议优先使用 Windows 集成认证和只读数据库账号。不要把生产连接串提交到 Git。
+数据库账号应只授予目标表或视图的 `SELECT` 权限。不要把生产连接串提交到 Git。
+
+连接字符串示例（仅示意，不要照抄账号密码）：
+
+```text
+Host=pg.example.internal;Port=5432;Database=ticketdb;Username=readonly_user;Password=***;SSL Mode=Require;Timeout=10;
+```
 
 当前查询位于 `Data/UnassignedTicketQuery.cs`。实际 SQL 需要把查询结果别名统一为：
 
@@ -46,14 +52,11 @@ Windows 经典版 Outlook VSTO 插件。Outlook 启动后自动在每个主窗�
 | `GROUP_ASSIGNED_AT` | 否 | 进入 ITCC L2 的时间 |
 | `TICKET_URL` | 否 | Helix 跳转地址 |
 
-## 数据库驱动
+## PostgreSQL 驱动
 
-代码通过 `DbProviderFactories` 加载驱动：
+项目固定使用 `Npgsql 8.0.9`。Npgsql 8 是支持 .NET Framework 4.8 的最后一个主版本，不要直接升级到 Npgsql 9/10。
 
-- SQL Server 可使用 `.NET Framework Data Provider for SQL Server` 对应的 Provider 名称。
-- Oracle 需要在项目中安装与你们环境匹配的 ODP.NET Provider，之后填写对应 Provider invariant name。
-
-确定数据库类型、SQL 和返回字段后，再固定驱动包及真实字段映射。
+确定实际 SQL 和返回字段后，只需替换查询及字段映射，不再需要选择数据库 Provider。
 
 ## 安全边界
 

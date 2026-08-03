@@ -6,22 +6,22 @@ namespace UnassignedTicket.OutlookAddIn.Data
         // WHERE 条件必须在数据库端限定 IT Control Center L2、ASCHG 为空和有效状态。
         internal const string Sql = @"
 SELECT
-    TICKET_ID,
-    TICKET_TYPE,
-    SUMMARY,
-    PRIORITY,
-    STATUS,
-    CREATED_AT,
-    GROUP_ASSIGNED_AT,
-    TICKET_URL
-FROM YOUR_TICKET_VIEW
-WHERE SUPPORT_GROUP = 'IT Control Center L2'
-  AND ASCHG IS NULL
-  AND IS_ACTIVE = 1";
+    ticket_id         AS "TICKET_ID",
+    ticket_type       AS "TICKET_TYPE",
+    summary           AS "SUMMARY",
+    priority          AS "PRIORITY",
+    status            AS "STATUS",
+    created_at        AS "CREATED_AT",
+    group_assigned_at AS "GROUP_ASSIGNED_AT",
+    ticket_url        AS "TICKET_URL"
+FROM your_ticket_view
+WHERE support_group = 'IT Control Center L2'
+  AND aschg IS NULL
+  AND is_active = TRUE";
 
         internal static bool IsPlaceholder
         {
-            get { return Sql.Contains("YOUR_TICKET_VIEW"); }
+            get { return Sql.Contains("your_ticket_view"); }
         }
     }
 }

@@ -4,6 +4,7 @@ using System.Data.Common;
 using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
+using Npgsql;
 using UnassignedTicket.OutlookAddIn.Models;
 
 namespace UnassignedTicket.OutlookAddIn.Data
@@ -19,7 +20,7 @@ namespace UnassignedTicket.OutlookAddIn.Data
 
         public async Task TestConnectionAsync(CancellationToken cancellationToken)
         {
-            using (DbConnection connection = CreateConnection())
+            using (NpgsqlConnection connection = CreateConnection())
             {
                 await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
             }
@@ -33,8 +34,8 @@ namespace UnassignedTicket.OutlookAddIn.Data
             }
 
             var tickets = new List<Ticket>();
-            using (DbConnection connection = CreateConnection())
-            using (DbCommand command = connection.CreateCommand())
+            using (NpgsqlConnection connection = CreateConnection())
+            using (NpgsqlCommand command = connection.CreateCommand())
             {
                 command.CommandText = UnassignedTicketQuery.Sql;
                 command.CommandTimeout = _settings.CommandTimeoutSeconds;
@@ -57,32 +58,14 @@ namespace UnassignedTicket.OutlookAddIn.Data
             return tickets;
         }
 
-        private DbConnection CreateConnection()
+        private NpgsqlConnection CreateConnection()
         {
             if (!_settings.IsConfigured)
             {
                 throw new InvalidOperationException("数据库尚未配置。");
             }
 
-            DbProviderFactory factory;
-            try
-            {
-                factory = DbProviderFactories.GetFactory(_settings.ProviderInvariantName);
-            }
-            catch (Exception ex)
-            {
-                throw new InvalidOperationException(
-                    "找不到数据库 Provider：" + _settings.ProviderInvariantName + "。请确认驱动已安装。", ex);
-            }
-
-            DbConnection connection = factory.CreateConnection();
-            if (connection == null)
-            {
-                throw new InvalidOperationException("数据库 Provider 无法创建连接。");
-            }
-
-            connection.ConnectionString = _settings.ConnectionString;
-            return connection;
+            return new NpgsqlConnection(_settings.ConnectionString);
         }
 
         private static Ticket MapTicket(DbDataReader reader)

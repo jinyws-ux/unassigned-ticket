@@ -34,7 +34,7 @@ namespace UnassignedTicket.OutlookAddIn.Data
                 byte[] clear = ProtectedData.Unprotect(encrypted, Entropy, DataProtectionScope.CurrentUser);
                 string[] lines = Encoding.UTF8.GetString(clear).Split(new[] { '\n' }, 3);
 
-                if (lines.Length != 3)
+                if (lines.Length != 3 || !string.Equals(lines[0], "PG", StringComparison.Ordinal))
                 {
                     throw new InvalidDataException("数据库配置格式无效。");
                 }
@@ -47,7 +47,6 @@ namespace UnassignedTicket.OutlookAddIn.Data
 
                 return new DatabaseSettings
                 {
-                    ProviderInvariantName = lines[0].Trim(),
                     CommandTimeoutSeconds = Math.Max(3, Math.Min(timeout, 120)),
                     ConnectionString = lines[2]
                 };
@@ -62,14 +61,14 @@ namespace UnassignedTicket.OutlookAddIn.Data
         {
             if (settings == null || !settings.IsConfigured)
             {
-                throw new ArgumentException("Provider 和连接字符串不能为空。", nameof(settings));
+                throw new ArgumentException("PostgreSQL 连接字符串不能为空。", nameof(settings));
             }
 
             string directory = Path.GetDirectoryName(FilePath);
             Directory.CreateDirectory(directory);
 
             string serialized = string.Join("\n",
-                settings.ProviderInvariantName.Trim(),
+                "PG",
                 settings.CommandTimeoutSeconds.ToString(),
                 settings.ConnectionString.Trim());
 

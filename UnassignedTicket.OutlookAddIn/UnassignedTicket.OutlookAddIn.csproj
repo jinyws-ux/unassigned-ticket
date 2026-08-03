@@ -75,6 +75,9 @@
     </COMReference>
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="Npgsql" Version="8.0.9" />
+  </ItemGroup>
+  <ItemGroup>
     <Compile Include="Data\DatabaseSettings.cs" />
     <Compile Include="Data\DbTicketRepository.cs" />
     <Compile Include="Data\ITicketRepository.cs" />
