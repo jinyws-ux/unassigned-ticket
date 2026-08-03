@@ -23,6 +23,16 @@ Windows 经典版 Outlook VSTO 插件。Outlook 启动后自动在每个主窗�
 
 打开 `UnassignedTicket.OutlookAddIn.sln`，确认 Outlook 已安装后按 `F5` 调试。
 
+正常情况下，F5 会启动经典版 `OUTLOOK.EXE`，而不是尝试运行项目 DLL。如果 Visual Studio 提示无法启动 `UnassignedTicket.OutlookAddIn.dll`：
+
+1. 打开 Visual Studio Installer，选择当前 Visual Studio，点击“修改”。
+2. 安装 `Office/SharePoint development` 工作负载。
+3. 在“单个组件”中确认已安装 `Visual Studio Tools for Office (VSTO)` 和 `.NET Framework 4.8 Developer Pack`。
+4. 确认电脑安装的是经典版 Outlook，而不只是新版 Outlook。
+5. 关闭 Visual Studio，重新打开解决方案，先执行“生成解决方案”，再按 F5。
+
+项目会自动检测 Microsoft 365/Office 16 常见的 32 位和 64 位安装路径；如果 Outlook 安装在自定义目录，可在项目属性的 Debug 页面把启动程序手动指定为实际的 `OUTLOOK.EXE`。
+
 ## 数据库配置
 
 第一次启动后，在右侧任务窗格点击“数据库设置”。配置内容会加密保存到：

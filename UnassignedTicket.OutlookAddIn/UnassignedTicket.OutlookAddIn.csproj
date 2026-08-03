@@ -24,6 +24,11 @@
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">17.0</VisualStudioVersion>
     <VSToolsPath Condition="'$(VSToolsPath)' == ''">$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)</VSToolsPath>
+    <VstoTargetsFile>$(VSToolsPath)\OfficeTools\Microsoft.VisualStudio.Tools.Office.targets</VstoTargetsFile>
+    <OutlookExecutable Condition="Exists('$(ProgramW6432)\Microsoft Office\root\Office16\OUTLOOK.EXE')">$(ProgramW6432)\Microsoft Office\root\Office16\OUTLOOK.EXE</OutlookExecutable>
+    <OutlookExecutable Condition="'$(OutlookExecutable)' == '' and Exists('$(MSBuildProgramFiles32)\Microsoft Office\root\Office16\OUTLOOK.EXE')">$(MSBuildProgramFiles32)\Microsoft Office\root\Office16\OUTLOOK.EXE</OutlookExecutable>
+    <OutlookExecutable Condition="'$(OutlookExecutable)' == '' and Exists('$(ProgramW6432)\Microsoft Office\Office16\OUTLOOK.EXE')">$(ProgramW6432)\Microsoft Office\Office16\OUTLOOK.EXE</OutlookExecutable>
+    <OutlookExecutable Condition="'$(OutlookExecutable)' == '' and Exists('$(MSBuildProgramFiles32)\Microsoft Office\Office16\OUTLOOK.EXE')">$(MSBuildProgramFiles32)\Microsoft Office\Office16\OUTLOOK.EXE</OutlookExecutable>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -32,6 +37,8 @@
     <OutputPath>bin\Debug\</OutputPath>
     <DefineConstants>$(DefineConstants);DEBUG;TRACE</DefineConstants>
     <PlatformTarget>AnyCPU</PlatformTarget>
+    <StartAction>Program</StartAction>
+    <StartProgram Condition="'$(OutlookExecutable)' != ''">$(OutlookExecutable)</StartProgram>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -39,6 +46,8 @@
     <OutputPath>bin\Release\</OutputPath>
     <DefineConstants>$(DefineConstants);TRACE</DefineConstants>
     <PlatformTarget>AnyCPU</PlatformTarget>
+    <StartAction>Program</StartAction>
+    <StartProgram Condition="'$(OutlookExecutable)' != ''">$(OutlookExecutable)</StartProgram>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -110,7 +119,13 @@
     </None>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <Import Project="$(VSToolsPath)\OfficeTools\Microsoft.VisualStudio.Tools.Office.targets" Condition="Exists('$(VSToolsPath)\OfficeTools\Microsoft.VisualStudio.Tools.Office.targets')" />
+  <Import Project="$(VstoTargetsFile)" Condition="Exists('$(VstoTargetsFile)')" />
+  <Target Name="EnsureVstoDevelopmentTools" BeforeTargets="PrepareForBuild" Condition="!Exists('$(VstoTargetsFile)')">
+    <Error Text="未找到 Visual Studio Tools for Office (VSTO) 构建组件。请在 Visual Studio Installer 中安装 Office/SharePoint development 工作负载及 Visual Studio Tools for Office 组件，然后重新打开解决方案。" />
+  </Target>
+  <Target Name="EnsureClassicOutlookInstalled" BeforeTargets="PrepareForBuild" Condition="'$(OutlookExecutable)' == '' and '$(StartProgram)' == ''">
+    <Error Text="未找到经典版 OUTLOOK.EXE。此 VSTO 插件不支持新版 Outlook；请确认已安装经典版 Outlook，或在项目属性的 Debug/Start external program 中指定 OUTLOOK.EXE。" />
+  </Target>
   <ProjectExtensions>
     <VisualStudio>
       <FlavorProperties GUID="{BAA0C2D2-18E2-41B9-852F-F413020CAA33}">
