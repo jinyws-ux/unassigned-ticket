@@ -1,79 +1,63 @@
-# ITCC 未分配工单监控
+# ITCC 未分配工单 Outlook 插件
 
-一个独立的 Outlook Web Add-in，用于在右侧任务窗格持续展示 **IT Control Center L2** 组内尚未分配处理人的 INC/WO 工单。
+Windows 经典版 Outlook VSTO 插件。Outlook 启动后自动在每个主窗口右侧显示任务窗格，不依赖当前选中的邮件。
 
-## 第一版功能
+## 第一版能力
 
-- Outlook 邮件阅读界面的可固定任务窗格
-- 每 60 秒自动刷新，支持手动刷新
-- 全部、INC、WO 类型筛选
-- 按等待时间排序
-- 加载、空结果、旧数据和首次失败状态
-- 点击工单跳转 Helix（接口返回 `url` 时）
-- Mock 数据与真实 API 可配置切换
+- Outlook 启动时自动显示右侧任务窗格
+- 每个 Outlook Explorer 窗口独立创建任务窗格
+- 每 60 秒自动查询，支持手动刷新
+- 全部、INC、WO 筛选
+- 数据库直连采用标准 ADO.NET Provider
+- 数据库配置仅保存在当前 Windows 用户目录，并使用 DPAPI 加密
+- 查询语句固定在代码中，插件界面不能提交任意 SQL
+- 未配置数据库时显示设置引导，不会尝试连接
 
-## 数据边界
+## 开发环境
 
-插件不直接访问 Helix，也不保存 `apikey`、JWT 或其他 Helix 凭据。后端负责 Token 管理、Helix 查询和字段清洗，插件只调用以下聚合接口：
+- Windows 10/11
+- 经典版 Outlook（VSTO 不支持新版 Outlook）
+- Visual Studio 2022/2026
+- Visual Studio 工作负载：`Office/SharePoint development`
+- .NET Framework 4.8 Developer Pack
 
-```http
-GET /api/v1/groups/itcc-l2/unassigned-tickets
+打开 `UnassignedTicket.OutlookAddIn.sln`，确认 Outlook 已安装后按 `F5` 调试。
+
+## 数据库配置
+
+第一次启动后，在右侧任务窗格点击“数据库设置”。配置内容会加密保存到：
+
+```text
+%LOCALAPPDATA%\ITCC\UnassignedTicket\database.config
 ```
 
-预期响应见 [`docs/API_CONTRACT.md`](docs/API_CONTRACT.md)。
+建议优先使用 Windows 集成认证和只读数据库账号。不要把生产连接串提交到 Git。
 
-## 快速开始
+当前查询位于 `Data/UnassignedTicketQuery.cs`。实际 SQL 需要把查询结果别名统一为：
 
-要求：Node.js 20+、npm、Microsoft 365 Outlook 测试账号。
+| 别名 | 必填 | 说明 |
+| --- | --- | --- |
+| `TICKET_ID` | 是 | INC/WO 编号 |
+| `TICKET_TYPE` | 否 | INC 或 WO；为空时从编号推断 |
+| `SUMMARY` | 是 | 摘要 |
+| `PRIORITY` | 否 | 优先级 |
+| `STATUS` | 否 | 状态 |
+| `CREATED_AT` | 是 | 创建时间 |
+| `GROUP_ASSIGNED_AT` | 否 | 进入 ITCC L2 的时间 |
+| `TICKET_URL` | 否 | Helix 跳转地址 |
 
-```bash
-npm install
-npm run validate
-npm test
-npm run build
-npm start
-```
+## 数据库驱动
 
-`npm start` 会启动 HTTPS 开发服务器并侧载 `manifest.xml`。首次运行时可能提示安装本地开发证书。
+代码通过 `DbProviderFactories` 加载驱动：
 
-只在浏览器中检查 UI：
+- SQL Server 可使用 `.NET Framework Data Provider for SQL Server` 对应的 Provider 名称。
+- Oracle 需要在项目中安装与你们环境匹配的 ODP.NET Provider，之后填写对应 Provider invariant name。
 
-```bash
-npm run dev-server
-```
+确定数据库类型、SQL 和返回字段后，再固定驱动包及真实字段映射。
 
-然后访问 `https://localhost:3000/taskpane.html`。
+## 安全边界
 
-## 接入真实后端
-
-修改 [`public/config.js`](public/config.js)：
-
-```javascript
-window.__ITCC_CONFIG__ = {
-  apiBaseUrl: "https://your-internal-api.example.com",
-  endpointPath: "/api/v1/groups/itcc-l2/unassigned-tickets",
-  refreshIntervalMs: 60000,
-  requestTimeoutMs: 15000,
-  useMockData: false
-};
-```
-
-不要在这个文件中写任何 Helix Token、apikey 或账号密码。生产部署时还需要把 `manifest.xml` 中的 `https://localhost:3000` 替换成实际 HTTPS 地址。
-
-## 常用命令
-
-| 命令 | 用途 |
-| --- | --- |
-| `npm start` | 启动并侧载 Outlook 插件 |
-| `npm stop` | 停止调试并移除侧载 |
-| `npm run dev-server` | 仅启动 HTTPS 前端 |
-| `npm run build` | 生成 `dist/` 生产文件 |
-| `npm test` | 运行单元测试 |
-| `npm run typecheck` | TypeScript 检查 |
-| `npm run validate` | 校验 Outlook Manifest |
-
-## 文档
-
-- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)：模块职责与后续扩展边界
-- [`docs/API_CONTRACT.md`](docs/API_CONTRACT.md)：插件与后端接口约定
-- [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md)：构建、部署和侧载说明
+- 插件只执行内置只读查询。
+- 不接受用户输入 SQL。
+- 建议数据库账号只授予目标视图/表的 `SELECT` 权限。
+- 连接串使用 Windows DPAPI `CurrentUser` 范围加密，每位用户需要单独配置。

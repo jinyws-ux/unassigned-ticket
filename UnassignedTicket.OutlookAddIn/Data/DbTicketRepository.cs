@@ -1,0 +1,151 @@
+using System;
+using System.Collections.Generic;
+using System.Data.Common;
+using System.Globalization;
+using System.Threading;
+using System.Threading.Tasks;
+using UnassignedTicket.OutlookAddIn.Models;
+
+namespace UnassignedTicket.OutlookAddIn.Data
+{
+    internal sealed class DbTicketRepository : ITicketRepository
+    {
+        private readonly DatabaseSettings _settings;
+
+        internal DbTicketRepository(DatabaseSettings settings)
+        {
+            _settings = settings ?? throw new ArgumentNullException(nameof(settings));
+        }
+
+        public async Task TestConnectionAsync(CancellationToken cancellationToken)
+        {
+            using (DbConnection connection = CreateConnection())
+            {
+                await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+            }
+        }
+
+        public async Task<IReadOnlyList<Ticket>> GetUnassignedTicketsAsync(CancellationToken cancellationToken)
+        {
+            if (UnassignedTicketQuery.IsPlaceholder)
+            {
+                throw new InvalidOperationException("查询 SQL 尚未配置，请先替换 UnassignedTicketQuery.cs 中的示例查询。");
+            }
+
+            var tickets = new List<Ticket>();
+            using (DbConnection connection = CreateConnection())
+            using (DbCommand command = connection.CreateCommand())
+            {
+                command.CommandText = UnassignedTicketQuery.Sql;
+                command.CommandTimeout = _settings.CommandTimeoutSeconds;
+
+                await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+                using (DbDataReader reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false))
+                {
+                    while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+                    {
+                        Ticket ticket = MapTicket(reader);
+                        if (!string.IsNullOrWhiteSpace(ticket.Id))
+                        {
+                            tickets.Add(ticket);
+                        }
+                    }
+                }
+            }
+
+            tickets.Sort((left, right) => right.WaitingTime.CompareTo(left.WaitingTime));
+            return tickets;
+        }
+
+        private DbConnection CreateConnection()
+        {
+            if (!_settings.IsConfigured)
+            {
+                throw new InvalidOperationException("数据库尚未配置。");
+            }
+
+            DbProviderFactory factory;
+            try
+            {
+                factory = DbProviderFactories.GetFactory(_settings.ProviderInvariantName);
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException(
+                    "找不到数据库 Provider：" + _settings.ProviderInvariantName + "。请确认驱动已安装。", ex);
+            }
+
+            DbConnection connection = factory.CreateConnection();
+            if (connection == null)
+            {
+                throw new InvalidOperationException("数据库 Provider 无法创建连接。");
+            }
+
+            connection.ConnectionString = _settings.ConnectionString;
+            return connection;
+        }
+
+        private static Ticket MapTicket(DbDataReader reader)
+        {
+            string id = ReadString(reader, "TICKET_ID");
+            string type = ReadString(reader, "TICKET_TYPE");
+            if (string.IsNullOrWhiteSpace(type))
+            {
+                type = id != null && id.StartsWith("WO", StringComparison.OrdinalIgnoreCase) ? "WO" : "INC";
+            }
+
+            return new Ticket
+            {
+                Id = id,
+                Type = type.ToUpperInvariant(),
+                Summary = ReadString(reader, "SUMMARY") ?? "（无摘要）",
+                Priority = ReadString(reader, "PRIORITY"),
+                Status = ReadString(reader, "STATUS"),
+                CreatedAt = ReadDateTime(reader, "CREATED_AT") ?? DateTime.Now,
+                GroupAssignedAt = ReadDateTime(reader, "GROUP_ASSIGNED_AT"),
+                Url = ReadString(reader, "TICKET_URL")
+            };
+        }
+
+        private static int FindOrdinal(DbDataReader reader, string name)
+        {
+            for (int index = 0; index < reader.FieldCount; index++)
+            {
+                if (string.Equals(reader.GetName(index), name, StringComparison.OrdinalIgnoreCase))
+                {
+                    return index;
+                }
+            }
+
+            return -1;
+        }
+
+        private static string ReadString(DbDataReader reader, string name)
+        {
+            int ordinal = FindOrdinal(reader, name);
+            return ordinal < 0 || reader.IsDBNull(ordinal)
+                ? null
+                : Convert.ToString(reader.GetValue(ordinal), CultureInfo.InvariantCulture);
+        }
+
+        private static DateTime? ReadDateTime(DbDataReader reader, string name)
+        {
+            int ordinal = FindOrdinal(reader, name);
+            if (ordinal < 0 || reader.IsDBNull(ordinal))
+            {
+                return null;
+            }
+
+            object value = reader.GetValue(ordinal);
+            if (value is DateTime)
+            {
+                return (DateTime)value;
+            }
+
+            DateTime parsed;
+            return DateTime.TryParse(Convert.ToString(value, CultureInfo.InvariantCulture), out parsed)
+                ? parsed
+                : (DateTime?)null;
+        }
+    }
+}
