@@ -1,0 +1,45 @@
+{
+  "name": "itcc-unassigned-ticket-monitor",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Outlook task pane add-in for monitoring unassigned ITCC L2 tickets",
+  "scripts": {
+    "build": "webpack --mode production",
+    "build:dev": "webpack --mode development",
+    "dev-server": "webpack serve --mode development",
+    "start": "office-addin-debugging start manifest.xml",
+    "start:web": "office-addin-debugging start manifest.xml web",
+    "stop": "office-addin-debugging stop manifest.xml",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "validate": "office-addin-manifest validate manifest.xml"
+  },
+  "dependencies": {
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
+  "devDependencies": {
+    "@testing-library/react": "16.3.2",
+    "@types/office-js": "1.0.604",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.4",
+    "copy-webpack-plugin": "14.0.0",
+    "css-loader": "7.1.4",
+    "html-webpack-plugin": "5.6.8",
+    "jsdom": "26.1.0",
+    "office-addin-debugging": "6.1.2",
+    "office-addin-dev-certs": "2.0.10",
+    "office-addin-manifest": "2.1.6",
+    "style-loader": "4.0.0",
+    "ts-loader": "9.6.2",
+    "typescript": "5.9.3",
+    "vitest": "4.1.10",
+    "webpack": "5.109.2",
+    "webpack-cli": "7.2.2",
+    "webpack-dev-server": "6.0.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
