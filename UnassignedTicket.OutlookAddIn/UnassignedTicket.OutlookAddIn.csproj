@@ -32,9 +32,6 @@
     <BootstrapperEnabled>true</BootstrapperEnabled>
     <BootstrapperComponentsLocation>HomeSite</BootstrapperComponentsLocation>
     <ResolveComReferenceSilent>true</ResolveComReferenceSilent>
-    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
-    <RestoreProjectStyle>PackageReference</RestoreProjectStyle>
-    <LangVersion>7.3</LangVersion>
   </PropertyGroup>
   <ItemGroup>
     <BootstrapperPackage Include="Microsoft.VSTORuntime.4.0">
@@ -115,9 +112,6 @@
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
-  </ItemGroup>
-  <ItemGroup>
-    <PackageReference Include="Npgsql" Version="8.0.9" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="Microsoft.Office.Tools.v4.0.Framework, Version=10.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
@@ -225,12 +219,7 @@
     <Compile Include="ThisAddIn.Designer.cs">
       <DependentUpon>ThisAddIn.Designer.xml</DependentUpon>
     </Compile>
-    <Compile Include="Data\DatabaseSettings.cs" />
-    <Compile Include="Data\DbTicketRepository.cs" />
-    <Compile Include="Data\ITicketRepository.cs" />
     <Compile Include="Data\SettingsStore.cs" />
-    <Compile Include="Data\UnassignedTicketQuery.cs" />
-    <Compile Include="Models\Ticket.cs" />
     <Compile Include="UI\ConnectionSettingsForm.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -242,6 +231,10 @@
     </Compile>
     <AppDesigner Include="Properties\" />
     <None Include="App.config" />
+    <ProjectReference Include="..\UnassignedTicket.Core\UnassignedTicket.Core.csproj">
+      <Project>{7297F10A-1F7B-4F88-A55F-A7868CB18E58}</Project>
+      <Name>UnassignedTicket.Core</Name>
+    </ProjectReference>
   </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
