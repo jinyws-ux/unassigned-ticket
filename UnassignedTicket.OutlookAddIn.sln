@@ -1,8 +1,8 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.0.31903.59
+# Visual Studio Version 18
+VisualStudioVersion = 18.0.0.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{BAA0C2D2-18E2-41B9-852F-F413020CAA33}") = "UnassignedTicket.OutlookAddIn", "UnassignedTicket.OutlookAddIn\UnassignedTicket.OutlookAddIn.csproj", "{B9AC23A7-54FE-4C59-9C69-542E06117D87}"
+Project("{BAA0C2D2-18E2-41B9-852F-F413020CAA33}") = "UnassignedTicket.OutlookAddIn", "UnassignedTicket.OutlookAddIn\UnassignedTicket.OutlookAddIn.csproj", "{F7D1B260-C6C4-4EAD-9A74-C0C25766AB0F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -10,10 +10,10 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{B9AC23A7-54FE-4C59-9C69-542E06117D87}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{B9AC23A7-54FE-4C59-9C69-542E06117D87}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{B9AC23A7-54FE-4C59-9C69-542E06117D87}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{B9AC23A7-54FE-4C59-9C69-542E06117D87}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F7D1B260-C6C4-4EAD-9A74-C0C25766AB0F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F7D1B260-C6C4-4EAD-9A74-C0C25766AB0F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F7D1B260-C6C4-4EAD-9A74-C0C25766AB0F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F7D1B260-C6C4-4EAD-9A74-C0C25766AB0F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

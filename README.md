@@ -31,7 +31,9 @@ Windows 经典版 Outlook VSTO 插件。Outlook 启动后自动在每个主窗�
 4. 确认电脑安装的是经典版 Outlook，而不只是新版 Outlook。
 5. 关闭 Visual Studio，重新打开解决方案，先执行“生成解决方案”，再按 F5。
 
-项目会自动检测 Microsoft 365/Office 16 常见的 32 位和 64 位安装路径；如果 Outlook 安装在自定义目录，可在项目属性的 Debug 页面把启动程序手动指定为实际的 `OUTLOOK.EXE`。
+当前工程外壳、Designer 文件、COM 引用版本和项目 GUID 均来自 Visual Studio 2026 官方创建的 Outlook VSTO Add-in 模板。F5 的 Outlook 启动方式由 VSTO 项目系统负责，不再手工指定 DLL 或 `OUTLOOK.EXE`。
+
+公开仓库不包含 Visual Studio 自动生成的临时 `.pfx` 私钥，因此项目暂时关闭 ClickOnce Manifest 签名，这不影响源码管理。正式发布前应在项目“签名”页面选择公司代码签名证书或为本机调试创建新的测试证书，不能把生产私钥提交到仓库。
 
 ## 数据库配置
 
