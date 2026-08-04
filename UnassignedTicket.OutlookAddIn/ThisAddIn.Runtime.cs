@@ -11,6 +11,13 @@ namespace UnassignedTicket.OutlookAddIn
     {
         private readonly List<ExplorerPaneContext> _paneContexts = new List<ExplorerPaneContext>();
         private Outlook.Explorers _explorers;
+        private TicketRibbon _ticketRibbon;
+
+        protected override IRibbonExtensibility CreateRibbonExtensibilityObject()
+        {
+            _ticketRibbon = new TicketRibbon(this);
+            return _ticketRibbon;
+        }
 
         private void StartTicketMonitor()
         {
@@ -56,14 +63,57 @@ namespace UnassignedTicket.OutlookAddIn
                 return;
             }
 
-            var control = new TicketPaneControl();
+            var control = new TicketPaneControl(() => ShowTicketPane(explorer));
             CustomTaskPane pane = CustomTaskPanes.Add(control, "ITCC 未分配工单", explorer);
             pane.DockPosition = MsoCTPDockPosition.msoCTPDockPositionRight;
             pane.Width = 360;
             pane.Visible = true;
 
-            var context = new ExplorerPaneContext(explorer, pane, RemoveTaskPane);
+            var context = new ExplorerPaneContext(explorer, pane, RemoveTaskPane, OnTaskPaneVisibleChanged);
             _paneContexts.Add(context);
+        }
+
+        internal bool IsActiveTaskPaneVisible()
+        {
+            Outlook.Explorer explorer = Application.ActiveExplorer();
+            ExplorerPaneContext context = FindPaneContext(explorer);
+            return context != null && context.Pane.Visible;
+        }
+
+        internal void SetActiveTaskPaneVisible(bool visible)
+        {
+            Outlook.Explorer explorer = Application.ActiveExplorer();
+            if (explorer == null) return;
+
+            AttachTaskPane(explorer);
+            ShowTicketPane(explorer, visible);
+        }
+
+        private void ShowTicketPane(Outlook.Explorer explorer)
+        {
+            ShowTicketPane(explorer, true);
+        }
+
+        private void ShowTicketPane(Outlook.Explorer explorer, bool visible)
+        {
+            ExplorerPaneContext context = FindPaneContext(explorer);
+            if (context == null) return;
+
+            context.Pane.Visible = visible;
+            if (visible)
+            {
+                explorer.Activate();
+            }
+        }
+
+        private ExplorerPaneContext FindPaneContext(Outlook.Explorer explorer)
+        {
+            return explorer == null ? null : _paneContexts.Find(item => item.IsFor(explorer));
+        }
+
+        private void OnTaskPaneVisibleChanged(object sender, EventArgs e)
+        {
+            _ticketRibbon?.InvalidatePaneButton();
         }
 
         private void RemoveTaskPane(ExplorerPaneContext context)
@@ -89,17 +139,21 @@ namespace UnassignedTicket.OutlookAddIn
         private sealed class ExplorerPaneContext : IDisposable
         {
             private readonly Action<ExplorerPaneContext> _closedCallback;
+            private readonly EventHandler _visibleChangedCallback;
             private bool _disposed;
 
             internal ExplorerPaneContext(
                 Outlook.Explorer explorer,
                 CustomTaskPane pane,
-                Action<ExplorerPaneContext> closedCallback)
+                Action<ExplorerPaneContext> closedCallback,
+                EventHandler visibleChangedCallback)
             {
                 Explorer = explorer;
                 Pane = pane;
                 _closedCallback = closedCallback;
+                _visibleChangedCallback = visibleChangedCallback;
                 ((Outlook.ExplorerEvents_10_Event)Explorer).Close += OnExplorerClose;
+                Pane.VisibleChanged += _visibleChangedCallback;
             }
 
             internal Outlook.Explorer Explorer { get; }
@@ -124,6 +178,7 @@ namespace UnassignedTicket.OutlookAddIn
 
                 _disposed = true;
                 ((Outlook.ExplorerEvents_10_Event)Explorer).Close -= OnExplorerClose;
+                Pane.VisibleChanged -= _visibleChangedCallback;
                 (Pane.Control as IDisposable)?.Dispose();
             }
         }

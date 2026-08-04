@@ -22,12 +22,17 @@ namespace UnassignedTicket.OutlookAddIn.UI
         private readonly Button _incButton;
         private readonly Button _woButton;
         private readonly Button _refreshButton;
+        private readonly NotifyIcon _notifyIcon;
+        private readonly Action _showPane;
         private List<Ticket> _tickets = new List<Ticket>();
+        private HashSet<string> _knownTicketIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         private string _filter = "ALL";
         private int _isRefreshing;
+        private bool _hasSuccessfulSnapshot;
 
-        internal TicketPaneControl()
+        internal TicketPaneControl(Action showPane)
         {
+            _showPane = showPane;
             BackColor = Color.FromArgb(248, 250, 252);
             Font = new Font("Segoe UI", 9F);
             MinimumSize = new Size(300, 400);
@@ -98,14 +103,27 @@ namespace UnassignedTicket.OutlookAddIn.UI
             Controls.Add(stats);
             Controls.Add(header);
 
-            _refreshTimer = new System.Windows.Forms.Timer { Interval = 60_000 };
+            _notifyIcon = new NotifyIcon
+            {
+                Icon = SystemIcons.Information,
+                Text = "ITCC 未分配工单",
+                Visible = true
+            };
+            _notifyIcon.BalloonTipClicked += (sender, args) => _showPane?.Invoke();
+
+            _refreshTimer = new System.Windows.Forms.Timer { Interval = 5 * 60_000 };
             _refreshTimer.Tick += async (sender, args) => await RefreshTicketsAsync();
             Load += async (sender, args) =>
             {
                 _refreshTimer.Start();
                 await RefreshTicketsAsync();
             };
-            Disposed += (sender, args) => _refreshTimer.Dispose();
+            Disposed += (sender, args) =>
+            {
+                _refreshTimer.Dispose();
+                _notifyIcon.Visible = false;
+                _notifyIcon.Dispose();
+            };
 
             UpdateFilterButtons();
             RenderTickets();
@@ -195,7 +213,9 @@ namespace UnassignedTicket.OutlookAddIn.UI
                 using (var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(settings.CommandTimeoutSeconds + 2)))
                 {
                     IReadOnlyList<Ticket> result = await repository.GetUnassignedTicketsAsync(timeout.Token);
-                    _tickets = result.ToList();
+                    List<Ticket> refreshedTickets = result.ToList();
+                    NotifyAboutNewTickets(refreshedTickets);
+                    _tickets = refreshedTickets;
                 }
 
                 _statusLabel.Text = "更新于 " + DateTime.Now.ToString("HH:mm:ss");
@@ -243,6 +263,8 @@ namespace UnassignedTicket.OutlookAddIn.UI
                 try
                 {
                     _settingsStore.Save(form.Result);
+                    _knownTicketIds.Clear();
+                    _hasSuccessfulSnapshot = false;
                     _ = RefreshTicketsAsync();
                 }
                 catch (Exception ex)
@@ -250,6 +272,43 @@ namespace UnassignedTicket.OutlookAddIn.UI
                     MessageBox.Show("保存失败：" + ex.Message, "数据库设置", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
+        }
+
+        private void NotifyAboutNewTickets(IReadOnlyList<Ticket> refreshedTickets)
+        {
+            var currentIds = new HashSet<string>(
+                refreshedTickets.Where(ticket => !string.IsNullOrWhiteSpace(ticket.Id)).Select(ticket => ticket.Id),
+                StringComparer.OrdinalIgnoreCase);
+
+            if (_hasSuccessfulSnapshot)
+            {
+                List<Ticket> newTickets = refreshedTickets
+                    .Where(ticket => !string.IsNullOrWhiteSpace(ticket.Id) && !_knownTicketIds.Contains(ticket.Id))
+                    .ToList();
+
+                if (newTickets.Count > 0)
+                {
+                    string message = newTickets.Count == 1
+                        ? newTickets[0].Id + "：" + Truncate(newTickets[0].Summary, 120)
+                        : "发现 " + newTickets.Count + " 个新的未分配工单：" +
+                          string.Join("、", newTickets.Take(3).Select(ticket => ticket.Id)) +
+                          (newTickets.Count > 3 ? " 等" : string.Empty);
+
+                    _notifyIcon.BalloonTipTitle = "ITCC 新增未分配工单";
+                    _notifyIcon.BalloonTipText = message;
+                    _notifyIcon.BalloonTipIcon = ToolTipIcon.Warning;
+                    _notifyIcon.ShowBalloonTip(10000);
+                }
+            }
+
+            _knownTicketIds = currentIds;
+            _hasSuccessfulSnapshot = true;
+        }
+
+        private static string Truncate(string value, int maximumLength)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return "（无摘要）";
+            return value.Length <= maximumLength ? value : value.Substring(0, maximumLength - 1) + "…";
         }
 
         private void UpdateFilterButtons()
