@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using Microsoft.Office.Core;
 using UnassignedTicket.OutlookAddIn.UI;
 using CustomTaskPane = Microsoft.Office.Tools.CustomTaskPane;
@@ -89,6 +90,18 @@ namespace UnassignedTicket.OutlookAddIn
             ShowTicketPane(explorer, visible);
         }
 
+        internal void OpenDatabaseSettings()
+        {
+            Outlook.Explorer explorer = Application.ActiveExplorer();
+            if (explorer == null) return;
+
+            AttachTaskPane(explorer);
+            ShowTicketPane(explorer, true);
+
+            ExplorerPaneContext context = FindPaneContext(explorer);
+            (context?.Pane.Control as TicketPaneControl)?.OpenSettingsDialog();
+        }
+
         private void ShowTicketPane(Outlook.Explorer explorer)
         {
             ShowTicketPane(explorer, true);
@@ -124,6 +137,7 @@ namespace UnassignedTicket.OutlookAddIn
             }
 
             _paneContexts.Remove(context);
+            context.Dispose();
             try
             {
                 CustomTaskPanes.Remove(context.Pane);
@@ -132,8 +146,14 @@ namespace UnassignedTicket.OutlookAddIn
             {
                 // Outlook 关闭窗口时可能已先移除任务窗格。
             }
-
-            context.Dispose();
+            catch (ObjectDisposedException)
+            {
+                // Outlook 退出时可能已释放任务窗格。
+            }
+            catch (COMException)
+            {
+                // Outlook COM 对象已进入关闭流程。
+            }
         }
 
         private sealed class ExplorerPaneContext : IDisposable
@@ -177,9 +197,31 @@ namespace UnassignedTicket.OutlookAddIn
                 }
 
                 _disposed = true;
-                ((Outlook.ExplorerEvents_10_Event)Explorer).Close -= OnExplorerClose;
-                Pane.VisibleChanged -= _visibleChangedCallback;
-                (Pane.Control as IDisposable)?.Dispose();
+                try
+                {
+                    ((Outlook.ExplorerEvents_10_Event)Explorer).Close -= OnExplorerClose;
+                }
+                catch (COMException)
+                {
+                    // Explorer 已由 Outlook 释放。
+                }
+                catch (ObjectDisposedException)
+                {
+                    // Explorer 包装对象已释放。
+                }
+
+                try
+                {
+                    Pane.VisibleChanged -= _visibleChangedCallback;
+                }
+                catch (ObjectDisposedException)
+                {
+                    // 任务窗格已由 VSTO 释放。
+                }
+                catch (COMException)
+                {
+                    // 任务窗格 COM 对象已释放。
+                }
             }
         }
     }

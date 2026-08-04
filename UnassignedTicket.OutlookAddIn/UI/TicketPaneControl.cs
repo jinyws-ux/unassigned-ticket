@@ -29,6 +29,8 @@ namespace UnassignedTicket.OutlookAddIn.UI
         private string _filter = "ALL";
         private int _isRefreshing;
         private bool _hasSuccessfulSnapshot;
+        private bool _databaseConfigured;
+        private bool _isShuttingDown;
 
         internal TicketPaneControl(Action showPane)
         {
@@ -63,7 +65,7 @@ namespace UnassignedTicket.OutlookAddIn.UI
             _refreshButton.Click += async (sender, args) => await RefreshTicketsAsync();
             var settingsButton = CreateActionButton("设置", 250, 49, 58);
             settingsButton.Anchor = AnchorStyles.Top | AnchorStyles.Right;
-            settingsButton.Click += OpenSettings;
+            settingsButton.Click += (sender, args) => OpenSettingsDialog();
             header.Controls.AddRange(new Control[] { title, _statusLabel, _refreshButton, settingsButton });
 
             var stats = new TableLayoutPanel
@@ -118,15 +120,25 @@ namespace UnassignedTicket.OutlookAddIn.UI
                 _refreshTimer.Start();
                 await RefreshTicketsAsync();
             };
-            Disposed += (sender, args) =>
-            {
-                _refreshTimer.Dispose();
-                _notifyIcon.Visible = false;
-                _notifyIcon.Dispose();
-            };
-
             UpdateFilterButtons();
             RenderTickets();
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing && !_isShuttingDown)
+            {
+                _isShuttingDown = true;
+                _refreshTimer?.Stop();
+                _refreshTimer?.Dispose();
+                if (_notifyIcon != null)
+                {
+                    _notifyIcon.Visible = false;
+                    _notifyIcon.Dispose();
+                }
+            }
+
+            base.Dispose(disposing);
         }
 
         private static Button CreateActionButton(string text, int left, int top, int width)
@@ -192,6 +204,7 @@ namespace UnassignedTicket.OutlookAddIn.UI
 
         private async System.Threading.Tasks.Task RefreshTicketsAsync()
         {
+            if (_isShuttingDown) return;
             if (Interlocked.Exchange(ref _isRefreshing, 1) == 1) return;
 
             _refreshButton.Enabled = false;
@@ -200,6 +213,7 @@ namespace UnassignedTicket.OutlookAddIn.UI
             try
             {
                 DatabaseSettings settings = _settingsStore.Load();
+                _databaseConfigured = settings.IsConfigured;
                 if (!settings.IsConfigured)
                 {
                     _tickets.Clear();
@@ -213,6 +227,7 @@ namespace UnassignedTicket.OutlookAddIn.UI
                 using (var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(settings.CommandTimeoutSeconds + 2)))
                 {
                     IReadOnlyList<Ticket> result = await repository.GetUnassignedTicketsAsync(timeout.Token);
+                    if (_isShuttingDown) return;
                     List<Ticket> refreshedTickets = result.ToList();
                     NotifyAboutNewTickets(refreshedTickets);
                     _tickets = refreshedTickets;
@@ -224,15 +239,18 @@ namespace UnassignedTicket.OutlookAddIn.UI
             }
             catch (OperationCanceledException)
             {
-                ShowRefreshError("数据库查询超时，保留上次结果");
+                if (!_isShuttingDown) ShowRefreshError("数据库查询超时，保留上次结果");
             }
             catch (Exception ex)
             {
-                ShowRefreshError(ex.Message);
+                if (!_isShuttingDown) ShowRefreshError(ex.Message);
             }
             finally
             {
-                _refreshButton.Enabled = true;
+                if (!_isShuttingDown && !_refreshButton.IsDisposed)
+                {
+                    _refreshButton.Enabled = true;
+                }
                 Interlocked.Exchange(ref _isRefreshing, 0);
             }
         }
@@ -244,7 +262,7 @@ namespace UnassignedTicket.OutlookAddIn.UI
             RenderTickets();
         }
 
-        private void OpenSettings(object sender, EventArgs e)
+        internal void OpenSettingsDialog()
         {
             DatabaseSettings settings;
             try
@@ -263,6 +281,7 @@ namespace UnassignedTicket.OutlookAddIn.UI
                 try
                 {
                     _settingsStore.Save(form.Result);
+                    _databaseConfigured = true;
                     _knownTicketIds.Clear();
                     _hasSuccessfulSnapshot = false;
                     _ = RefreshTicketsAsync();
@@ -346,15 +365,33 @@ namespace UnassignedTicket.OutlookAddIn.UI
 
                 if (!visible.Any())
                 {
-                    _ticketList.Controls.Add(new Label
+                    if (!_databaseConfigured)
                     {
-                        Text = _tickets.Count == 0 ? "当前没有可显示的未分配工单" : "当前筛选下没有工单",
-                        Width = 280,
-                        Height = 90,
-                        TextAlign = ContentAlignment.MiddleCenter,
-                        ForeColor = Color.FromArgb(100, 116, 139),
-                        Margin = new Padding(0, 20, 0, 0)
-                    });
+                        var configureButton = new Button
+                        {
+                            Text = "配置 PostgreSQL 数据库",
+                            Width = 280,
+                            Height = 42,
+                            FlatStyle = FlatStyle.Flat,
+                            BackColor = Color.FromArgb(37, 99, 235),
+                            ForeColor = Color.White,
+                            Margin = new Padding(0, 24, 0, 0)
+                        };
+                        configureButton.Click += (sender, args) => OpenSettingsDialog();
+                        _ticketList.Controls.Add(configureButton);
+                    }
+                    else
+                    {
+                        _ticketList.Controls.Add(new Label
+                        {
+                            Text = _tickets.Count == 0 ? "当前没有可显示的未分配工单" : "当前筛选下没有工单",
+                            Width = 280,
+                            Height = 90,
+                            TextAlign = ContentAlignment.MiddleCenter,
+                            ForeColor = Color.FromArgb(100, 116, 139),
+                            Margin = new Padding(0, 20, 0, 0)
+                        });
+                    }
                 }
                 else
                 {

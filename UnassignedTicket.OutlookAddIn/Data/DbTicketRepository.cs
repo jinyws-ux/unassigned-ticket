@@ -72,15 +72,11 @@ namespace UnassignedTicket.OutlookAddIn.Data
         {
             string id = ReadString(reader, "TICKET_ID");
             string type = ReadString(reader, "TICKET_TYPE");
-            if (string.IsNullOrWhiteSpace(type))
-            {
-                type = id != null && id.StartsWith("WO", StringComparison.OrdinalIgnoreCase) ? "WO" : "INC";
-            }
 
             return new Ticket
             {
                 Id = id,
-                Type = type.ToUpperInvariant(),
+                Type = NormalizeTicketType(id, type),
                 Summary = ReadString(reader, "SUMMARY") ?? "（无摘要）",
                 Priority = ReadString(reader, "PRIORITY"),
                 Status = ReadString(reader, "STATUS"),
@@ -88,6 +84,34 @@ namespace UnassignedTicket.OutlookAddIn.Data
                 GroupAssignedAt = ReadDateTime(reader, "GROUP_ASSIGNED_AT"),
                 Url = ReadString(reader, "TICKET_URL")
             };
+        }
+
+        private static string NormalizeTicketType(string id, string value)
+        {
+            string normalized = (value ?? string.Empty)
+                .Replace(" ", string.Empty)
+                .Replace("_", string.Empty)
+                .Replace("-", string.Empty);
+
+            if (string.Equals(normalized, "Incident", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(normalized, "INC", StringComparison.OrdinalIgnoreCase))
+            {
+                return "INC";
+            }
+
+            if (string.Equals(normalized, "WorkOrder", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(normalized, "WO", StringComparison.OrdinalIgnoreCase))
+            {
+                return "WO";
+            }
+
+            if (!string.IsNullOrWhiteSpace(id))
+            {
+                if (id.StartsWith("WO", StringComparison.OrdinalIgnoreCase)) return "WO";
+                if (id.StartsWith("INC", StringComparison.OrdinalIgnoreCase)) return "INC";
+            }
+
+            return normalized.ToUpperInvariant();
         }
 
         private static int FindOrdinal(DbDataReader reader, string name)

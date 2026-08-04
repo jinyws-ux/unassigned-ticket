@@ -1,3 +1,4 @@
+using System;
 using System.Runtime.InteropServices;
 using Office = Microsoft.Office.Core;
 
@@ -31,6 +32,10 @@ namespace UnassignedTicket.OutlookAddIn
                         size=""large""
                         getPressed=""GetPaneVisible""
                         onAction=""OnTogglePane"" />
+          <button id=""itccDatabaseSettings""
+                  label=""数据库设置""
+                  screentip=""配置 PostgreSQL 数据库连接""
+                  onAction=""OnOpenSettings"" />
         </group>
       </tab>
     </tabs>
@@ -54,9 +59,25 @@ namespace UnassignedTicket.OutlookAddIn
             InvalidatePaneButton();
         }
 
+        public void OnOpenSettings(Office.IRibbonControl control)
+        {
+            _addIn.OpenDatabaseSettings();
+        }
+
         internal void InvalidatePaneButton()
         {
-            _ribbonUi?.InvalidateControl(PaneButtonId);
+            try
+            {
+                _ribbonUi?.InvalidateControl(PaneButtonId);
+            }
+            catch (COMException)
+            {
+                _ribbonUi = null;
+            }
+            catch (ObjectDisposedException)
+            {
+                _ribbonUi = null;
+            }
         }
     }
 }
