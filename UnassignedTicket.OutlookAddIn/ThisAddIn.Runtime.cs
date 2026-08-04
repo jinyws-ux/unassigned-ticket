@@ -51,7 +51,7 @@ namespace UnassignedTicket.OutlookAddIn
 
         private void AttachTaskPane(Outlook.Explorer explorer)
         {
-            if (explorer == null || _paneContexts.Exists(context => context.IsFor(explorer)))
+            if (explorer == null || _paneContexts.Exists(item => item.IsFor(explorer)))
             {
                 return;
             }
@@ -99,7 +99,7 @@ namespace UnassignedTicket.OutlookAddIn
                 Explorer = explorer;
                 Pane = pane;
                 _closedCallback = closedCallback;
-                Explorer.Close += OnExplorerClose;
+                ((Outlook.ExplorerEvents_10_Event)Explorer).Close += OnExplorerClose;
             }
 
             internal Outlook.Explorer Explorer { get; }
@@ -123,7 +123,7 @@ namespace UnassignedTicket.OutlookAddIn
                 }
 
                 _disposed = true;
-                Explorer.Close -= OnExplorerClose;
+                ((Outlook.ExplorerEvents_10_Event)Explorer).Close -= OnExplorerClose;
                 (Pane.Control as IDisposable)?.Dispose();
             }
         }
