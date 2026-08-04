@@ -33,6 +33,8 @@ Windows 经典版 Outlook VSTO 插件。Outlook 启动后自动在每个主窗�
 
 当前工程外壳、Designer 文件、COM 引用版本和项目 GUID 均来自 Visual Studio 2026 官方创建的 Outlook VSTO Add-in 模板。F5 的 Outlook 启动方式由 VSTO 项目系统负责，不再手工指定 DLL 或 `OUTLOOK.EXE`。
 
+解决方案中的 Outlook 项目使用 C# 项目工厂 GUID；VSTO Flavor GUID 仅保留在 `.csproj` 的 `ProjectTypeGuids` 中。不要把 VSTO Flavor GUID 直接写到 `.sln` 的 `Project(...)` 首个参数，否则 Visual Studio 会在项目评估前返回 COM `HRESULT E_FAIL`。
+
 为避免传统 VSTO 项目系统在加载阶段与 NuGet `PackageReference` 冲突，PostgreSQL/Npgsql 依赖被隔离在普通的 `UnassignedTicket.Core` 类库中；Outlook 工程本身保持官方模板的传统项目格式。
 
 公开仓库不包含 Visual Studio 自动生成的临时 `.pfx` 私钥，因此项目暂时关闭 ClickOnce Manifest 签名，这不影响源码管理。正式发布前应在项目“签名”页面选择公司代码签名证书或为本机调试创建新的测试证书，不能把生产私钥提交到仓库。

@@ -213,6 +213,9 @@
     <Compile Include="ThisAddIn.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="ThisAddIn.Runtime.cs">
+      <SubType>Code</SubType>
+    </Compile>
     <None Include="ThisAddIn.Designer.xml">
       <DependentUpon>ThisAddIn.cs</DependentUpon>
     </None>

@@ -1,130 +1,38 @@
 using System;
 using System.Collections.Generic;
-using Microsoft.Office.Core;
-using Microsoft.Office.Tools;
-using UnassignedTicket.OutlookAddIn.UI;
+using System.Linq;
+using System.Text;
+using System.Xml.Linq;
 using Outlook = Microsoft.Office.Interop.Outlook;
+using Office = Microsoft.Office.Core;
 
 namespace UnassignedTicket.OutlookAddIn
 {
     public partial class ThisAddIn
     {
-        private readonly List<ExplorerPaneContext> _paneContexts = new List<ExplorerPaneContext>();
-        private Outlook.Explorers _explorers;
-
-        private void ThisAddIn_Startup(object sender, EventArgs e)
+        private void ThisAddIn_Startup(object sender, System.EventArgs e)
         {
-            _explorers = Application.Explorers;
-            _explorers.NewExplorer += OnNewExplorer;
-
-            for (int index = 1; index <= _explorers.Count; index++)
-            {
-                AttachTaskPane(_explorers[index]);
-            }
-
-            Outlook.Explorer activeExplorer = Application.ActiveExplorer();
-            if (activeExplorer != null)
-            {
-                AttachTaskPane(activeExplorer);
-            }
+            StartTicketMonitor();
         }
 
-        private void OnNewExplorer(Outlook.Explorer explorer)
+        private void ThisAddIn_Shutdown(object sender, System.EventArgs e)
         {
-            AttachTaskPane(explorer);
+            StopTicketMonitor();
+
+            // 备注: Outlook不会再触发这个事件。如果具有
+            //    在 Outlook 关闭时必须运行，详请参阅 https://go.microsoft.com/fwlink/?LinkId=506785
         }
 
-        private void AttachTaskPane(Outlook.Explorer explorer)
-        {
-            if (explorer == null || _paneContexts.Exists(context => context.IsFor(explorer)))
-            {
-                return;
-            }
+        #region VSTO 生成的代码
 
-            var control = new TicketPaneControl();
-            CustomTaskPane pane = CustomTaskPanes.Add(control, "ITCC 未分配工单", explorer);
-            pane.DockPosition = MsoCTPDockPosition.msoCTPDockPositionRight;
-            pane.Width = 360;
-            pane.Visible = true;
-
-            var context = new ExplorerPaneContext(explorer, pane, RemoveTaskPane);
-            _paneContexts.Add(context);
-        }
-
-        private void RemoveTaskPane(ExplorerPaneContext context)
-        {
-            if (context == null) return;
-
-            _paneContexts.Remove(context);
-            try
-            {
-                CustomTaskPanes.Remove(context.Pane);
-            }
-            catch (ArgumentException)
-            {
-                // Outlook 关闭窗口时可能已先移除任务窗格。
-            }
-            context.Dispose();
-        }
-
-        private void ThisAddIn_Shutdown(object sender, EventArgs e)
-        {
-            if (_explorers != null)
-            {
-                _explorers.NewExplorer -= OnNewExplorer;
-            }
-
-            foreach (ExplorerPaneContext context in _paneContexts.ToArray())
-            {
-                context.Dispose();
-            }
-            _paneContexts.Clear();
-        }
-
-        private sealed class ExplorerPaneContext : IDisposable
-        {
-            private readonly Action<ExplorerPaneContext> _closedCallback;
-            private bool _disposed;
-
-            internal ExplorerPaneContext(
-                Outlook.Explorer explorer,
-                CustomTaskPane pane,
-                Action<ExplorerPaneContext> closedCallback)
-            {
-                Explorer = explorer;
-                Pane = pane;
-                _closedCallback = closedCallback;
-                Explorer.Close += OnExplorerClose;
-            }
-
-            internal Outlook.Explorer Explorer { get; }
-            internal CustomTaskPane Pane { get; }
-
-            internal bool IsFor(Outlook.Explorer explorer)
-            {
-                return ReferenceEquals(Explorer, explorer);
-            }
-
-            private void OnExplorerClose()
-            {
-                _closedCallback(this);
-            }
-
-            public void Dispose()
-            {
-                if (_disposed) return;
-                _disposed = true;
-                Explorer.Close -= OnExplorerClose;
-                (Pane.Control as IDisposable)?.Dispose();
-            }
-        }
-
-        #region VSTO generated code
-
+        /// <summary>
+        /// 设计器支持所需的方法 - 不要修改
+        /// 使用代码编辑器修改此方法的内容。
+        /// </summary>
         private void InternalStartup()
         {
-            Startup += ThisAddIn_Startup;
-            Shutdown += ThisAddIn_Shutdown;
+            this.Startup += new System.EventHandler(ThisAddIn_Startup);
+            this.Shutdown += new System.EventHandler(ThisAddIn_Shutdown);
         }
 
         #endregion
