@@ -1,0 +1,12 @@
+.vs/
+bin/
+obj/
+*.user
+*.suo
+*.vsto
+*.manifest
+*.pfx
+*.snk
+database.config
+packages/
+TestResults/
