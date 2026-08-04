@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
 using Microsoft.Office.Core;
-using Microsoft.Office.Tools;
 using UnassignedTicket.OutlookAddIn.UI;
+using CustomTaskPane = Microsoft.Office.Tools.CustomTaskPane;
 using Outlook = Microsoft.Office.Interop.Outlook;
 
 namespace UnassignedTicket.OutlookAddIn
