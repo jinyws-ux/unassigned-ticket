@@ -28,11 +28,6 @@ namespace UnassignedTicket.OutlookAddIn.Data
 
         public async Task<IReadOnlyList<Ticket>> GetUnassignedTicketsAsync(CancellationToken cancellationToken)
         {
-            if (UnassignedTicketQuery.IsPlaceholder)
-            {
-                throw new InvalidOperationException("查询 SQL 尚未配置，请先替换 UnassignedTicketQuery.cs 中的示例查询。");
-            }
-
             var tickets = new List<Ticket>();
             using (NpgsqlConnection connection = CreateConnection())
             using (NpgsqlCommand command = connection.CreateCommand())
